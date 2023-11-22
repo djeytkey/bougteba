@@ -6,6 +6,24 @@
 @if (session()->has('message'))
 <div class="alert alert-success alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('message') }}</div>
 @endif
+@php
+if($general_setting->theme == 'default.css') {
+$color = '#733686';
+$color_rgba = 'rgba(115, 54, 134, 0.8)';
+}
+elseif($general_setting->theme == 'green.css') {
+$color = '#2ecc71';
+$color_rgba = 'rgba(46, 204, 113, 0.8)';
+}
+elseif($general_setting->theme == 'blue.css') {
+$color = '#3498db';
+$color_rgba = 'rgba(52, 152, 219, 0.8)';
+}
+elseif($general_setting->theme == 'dark.css'){
+$color = '#34495e';
+$color_rgba = 'rgba(52, 73, 94, 0.8)';
+}
+@endphp
 <div class="row">
     <div class="container-fluid">
         <div class="col-md-12">
@@ -246,13 +264,29 @@
                         </div>
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-sm-12 mt-4">
+                        <div class="card line-chart-example">
+                            <div class="card-header d-flex align-items-center">
+                                <h4>{{trans('file.Sales Flow')}}</h4>
+                                <h4>Language : {{ $current_lang }}</h4>
+                            </div>
+                            <div class="card-body">
+                                <!-- <pre>{{ print_r($sales_by_month, true) }}</pre>
+                                <pre>{{ print_r($month, true) }}</pre> -->
+
+                                <canvas id="salesflow" data-color="{{$color}}" data-color_rgba="{{$color_rgba}}" data-salesbymonth="{{json_encode($sales_by_month)}}" data-month="{{json_encode($month)}}" data-label1="{{trans('file.Ventes par mois')}}"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
 <script type="text/javascript">
-    $("ul#dashboard").siblings('a').attr('aria-expanded','true');
+    $("ul#dashboard").siblings('a').attr('aria-expanded', 'true');
     $("ul#dashboard").addClass("show");
     $("ul#dashboard #dashboard-1").addClass("active");
 

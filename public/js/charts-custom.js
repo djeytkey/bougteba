@@ -7,6 +7,48 @@ $(document).ready(function () {
     // ------------------------------------------------------- //
     // Line Chart
     // ------------------------------------------------------ //
+    var SALESFLOW = $('#salesflow');
+    if (SALESFLOW.length > 0) {
+        var salesbymonth = SALESFLOW.data('salesbymonth');
+        brandPrimary = SALESFLOW.data('color');
+        brandPrimaryRgba = SALESFLOW.data('color_rgba');
+        var month = SALESFLOW.data('month');
+        var label1 = SALESFLOW.data('label1');
+        var salesflow_chart = new Chart(SALESFLOW, {
+            type: 'line',
+            data: {
+                labels: [ month[0], month[1], month[2], month[3], month[4],
+                 month[5], month[6] ],
+                datasets: [
+                    {
+                        label: label1,
+                        fill: true,
+                        lineTension: 0.3,
+                        backgroundColor: 'transparent',
+                        borderColor: brandPrimary,
+                        borderCapStyle: 'butt',
+                        borderDash: [],
+                        borderDashOffset: 0.0,
+                        borderJoinStyle: 'miter',
+                        borderWidth: 3,
+                        pointBorderColor: brandPrimary,
+                        pointBackgroundColor: "#fff",
+                        pointBorderWidth: 5,
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: brandPrimary,
+                        pointHoverBorderColor: "rgba(220,220,220,1)",
+                        pointHoverBorderWidth: 2,
+                        pointRadius: 1,
+                        pointHitRadius: 10,
+                        data: [salesbymonth[0], salesbymonth[1], salesbymonth[2], salesbymonth[3],
+                        salesbymonth[4], salesbymonth[5], salesbymonth[6] ],
+                        spanGaps: false
+                    },
+                ]
+            }
+        });
+    };
+
     var CASHFLOW = $('#cashFlow');
     if (CASHFLOW.length > 0) {
         var recieved = CASHFLOW.data('recieved');

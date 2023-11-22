@@ -21,6 +21,7 @@ use App\WithdrawReferral;
 use App\Referral;
 use App\Gain;
 use DB;
+use Lang;
 use Auth;
 use Printing;
 use Rawilk\Printing\Contracts\Printer;
@@ -44,54 +45,58 @@ class HomeController extends Controller
     public function index()
     {
         $start_date = '2023-11-01';
-        $end_date = date("Y").'-'.date("m").'-'.date('t', mktime(0, 0, 0, date("m"), 1, date("Y")));
+        $end_date = date("Y") . '-' . date("m") . '-' . date('t', mktime(0, 0, 0, date("m"), 1, date("Y")));
         $yearly_sale_amount = [];
 
         $general_setting = DB::table('general_settings')->latest()->first();
         $is_referral = Referral::where('referral_id', Auth::id())->count();
-        if(Auth::user()->role_id > 2 && $general_setting->staff_access == 'own') { // Role Vendeur
+        if (Auth::user()->role_id > 2 && $general_setting->staff_access == 'own') { // Role Vendeur
             $total_sales = Sale::where('user_id', Auth::id())->count();
             $livre          = Sale::where([
-                                        ['user_id', Auth::id()], 
-                                        ['delivery_status', 4]])
-                                    ->count();
+                ['user_id', Auth::id()],
+                ['delivery_status', 4]
+            ])
+                ->count();
             $en_cours       = Sale::where([
-                                        ['user_id', Auth::id()], 
-                                        ['delivery_status', '!=', 4]])
-                                    ->whereBetween('delivery_status', [1, 9])
-                                    ->count();
+                ['user_id', Auth::id()],
+                ['delivery_status', '!=', 4]
+            ])
+                ->whereBetween('delivery_status', [1, 9])
+                ->count();
             $returned       = Sale::where('user_id', Auth::id())
-                                    ->whereBetween('delivery_status', [10, 12])
-                                    ->count();
+                ->whereBetween('delivery_status', [10, 12])
+                ->count();
             $refused        = Sale::where([
-                                        ['user_id', Auth::id()],
-                                        ['delivery_status', 11]])
-                                    ->count();
+                ['user_id', Auth::id()],
+                ['delivery_status', 11]
+            ])
+                ->count();
             $new_sale       = Sale::where([
-                                        ['user_id', Auth::id()],
-                                        ['is_valide', 1]])
-                                    ->whereNull('delivery_status')
-                                    ->count();
-                            
+                ['user_id', Auth::id()],
+                ['is_valide', 1]
+            ])
+                ->whereNull('delivery_status')
+                ->count();
+
             $total_vendeur = 0;
             $total_v_referral = 0;
             $total_w_referral = 0;
             $total_r_referral = 0;
             $total_v_referral = Referral::where('referral_id', Auth::id())
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->sum('montant');
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->sum('montant');
 
             $total_w_referral = WithdrawReferral::where([
-                                        ['referral_id', Auth::id()],
-                                        ['status', 1]
-                                ])
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->sum('withdraw_amount');
+                ['referral_id', Auth::id()],
+                ['status', 1]
+            ])
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->sum('withdraw_amount');
 
             $total_r_referral = $total_v_referral - $total_w_referral;
-            
+
             $profit = 0;
             $reste = 0;
             $total_withdraws = 0;
@@ -110,39 +115,38 @@ class HomeController extends Controller
             $best_saler = 0;
 
             $lims_sale_data = Sale::where([
-                                            ['user_id', Auth::id()],
-                                            ['delivery_status', 4]
-                                        ])
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->get();
+                ['user_id', Auth::id()],
+                ['delivery_status', 4]
+            ])
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->get();
 
             foreach ($lims_sale_data as $sale) {
                 $lims_product_sale_data = Product_Sale::where('sale_id', $sale->id)->get();
                 foreach ($lims_product_sale_data as $product_sale) {
-                    $original_price += $product_sale->original_price * $product_sale->qty;                    
+                    $original_price += $product_sale->original_price * $product_sale->qty;
                 }
                 $net_price += $sale->grand_total;
                 $livraison += $sale->livraison;
                 $total_discount += $sale->total_discount;
-                
-            }            
+            }
 
             $profit = $net_price + $total_discount - $original_price - $livraison;
 
             $lims_sale_data = Sale::where([
-                                            ['user_id', Auth::id()],
-                                            ['delivery_status', 4]
-                                        ])
-                                ->whereNotNull('withdrawal_id')
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->get();
+                ['user_id', Auth::id()],
+                ['delivery_status', 4]
+            ])
+                ->whereNotNull('withdrawal_id')
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->get();
 
             foreach ($lims_sale_data as $sale) {
                 $lims_product_sale_data = Product_Sale::where('sale_id', $sale->id)->get();
                 foreach ($lims_product_sale_data as $product_sale) {
-                    $original_price_withdraws += $product_sale->original_price * $product_sale->qty;                    
+                    $original_price_withdraws += $product_sale->original_price * $product_sale->qty;
                 }
                 $net_price_withdraws += $sale->grand_total;
                 $livraison_withdraws += $sale->livraison;
@@ -196,21 +200,21 @@ class HomeController extends Controller
             // $recent_purchase = Purchase::orderBy('id', 'desc')->take(5)->get();
             // $recent_quotation = Quotation::orderBy('id', 'desc')->take(5)->get();
             // $recent_payment = Payment::orderBy('id', 'desc')->take(5)->get();
-            
+
         } else { // Role Admin
             $total_sales    = Sale::all()->count();
             $livre          = Sale::where('delivery_status', 4)
-                                    ->count();
+                ->count();
             $en_cours       = Sale::where('delivery_status', '!=', 4)
-                                    ->whereBetween('delivery_status', [1, 9])
-                                    ->count();
+                ->whereBetween('delivery_status', [1, 9])
+                ->count();
             $returned       = Sale::whereBetween('delivery_status', [10, 12])
-                                    ->count();
+                ->count();
             $refused        = Sale::where('delivery_status', 11)
-                                    ->count();
+                ->count();
             $new_sale       = Sale::where('is_valide', 1)
-                                    ->whereNull('delivery_status')
-                                    ->count();
+                ->whereNull('delivery_status')
+                ->count();
 
             /** Début gains table **/
 
@@ -244,18 +248,18 @@ class HomeController extends Controller
             $total_v_referral = 0;
             $total_w_referral = 0;
             $total_r_referral = 0;
-            $total_v_referral = Referral::whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->sum('montant');
+            $total_v_referral = Referral::whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->sum('montant');
 
             $total_w_referral = WithdrawReferral::where('status', 1)
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->sum('withdraw_amount');
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->sum('withdraw_amount');
 
             $total_r_referral = $total_v_referral - $total_w_referral;
 
-            
+
 
 
             /***********************************/
@@ -288,9 +292,9 @@ class HomeController extends Controller
             /** Début du calcul du profit total des vendeurs **/
 
             $lims_sale_data = Sale::where('delivery_status', 4)
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->get();
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->get();
 
             foreach ($lims_sale_data as $sale) {
                 $lims_gain_data = Gain::where('sale_id', $sale->id)->first();
@@ -308,10 +312,10 @@ class HomeController extends Controller
             /** Début du calcul du profit total des vendeurs (facturés) **/
 
             $lims_sale_data = Sale::where('delivery_status', 4)
-                                ->whereNotNull('withdrawal_id')
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->get();
+                ->whereNotNull('withdrawal_id')
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->get();
 
             foreach ($lims_sale_data as $sale) {
                 $lims_gain_data = Gain::where('sale_id', $sale->id)->first();
@@ -331,23 +335,171 @@ class HomeController extends Controller
             /***********************************/
 
             $best_selling_qty = Product_Sale::select(DB::raw('product_id, sum(qty) as sold_qty'))
-                                            ->whereDate('created_at', '>=' , $start_date)
-                                            ->whereDate('created_at', '<=' , $end_date)
-                                            ->groupBy('product_id')
-                                            ->orderBy('sold_qty', 'desc')
-                                            ->take(10)
-                                            ->get();
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->groupBy('product_id')
+                ->orderBy('sold_qty', 'desc')
+                ->take(10)
+                ->get();
 
             $best_saler       = Gain::select(DB::raw('
                                             user_id, (sum(grand_total) + sum(total_discount) - sum(total_original_price) - sum(total_livraison)) as t_gain '))
-                                            ->whereDate('created_at', '>=' , $start_date)
-                                            ->whereDate('created_at', '<=' , $end_date)
-                                            ->groupBy('user_id')
-                                            ->orderBy('t_gain', 'desc')
-                                            ->take(10)
-                                            ->get();
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->groupBy('user_id')
+                ->orderBy('t_gain', 'desc')
+                ->take(10)
+                ->get();
+
+            //Sales flow of last 6 months
+            $start = strtotime(date('Y-m-01', strtotime('-6 month', strtotime(date('Y-m-d')))));
+            $end = strtotime(date('Y-m-' . date('t', mktime(0, 0, 0, date("m"), 1, date("Y")))));
+
+            while ($start < $end) {
+                $start_date = date("Y-m", $start) . '-' . '01';
+                $end_date = date("Y-m", $start) . '-' . date('t', mktime(0, 0, 0, date("m", $start), 1, date("Y", $start)));
+
+                $sales_month = Sale::where('delivery_status', 4)
+                                    ->whereDate('created_at', '>=', $start_date)
+                                    ->whereDate('created_at', '<=', $end_date)
+                                    ->count();
+
+                $sales_by_month[] = $sales_month;
+                $eng_month = date("F", strtotime($start_date));
+                $current_lang = Lang::locale();
+                
 
 
+
+
+
+
+
+                switch ($eng_month) {
+                    case "January":
+                        if ($current_lang == "en") {
+                            $month[] = "January";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Janvier";
+                        } else {
+                            $month[] = "يناير";
+                        }
+                        break;
+                    
+                    case "February":
+                        if ($current_lang == "en") {
+                            $month[] = "February";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Février";
+                        } else {
+                            $month[] = "فبراير";
+                        }
+                        break;
+                    
+                    case "March":
+                        if ($current_lang == "en") {
+                            $month[] = "March";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Mars";
+                        } else {
+                            $month[] = "مارس";
+                        }
+                        break;
+                    
+                    case "April":
+                        if ($current_lang == "en") {
+                            $month[] = "April";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Avril";
+                        } else {
+                            $month[] = "أبريل";
+                        }
+                        break;
+                    
+                    case "May":
+                        if ($current_lang == "en") {
+                            $month[] = "May";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Mai";
+                        } else {
+                            $month[] = "ماي";
+                        }
+                        break;
+                    
+                    case "June":
+                        if ($current_lang == "en") {
+                            $month[] = "June";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Juin";
+                        } else {
+                            $month[] = "يونيو";
+                        }
+                        break;
+                    
+                    case "July":
+                        if ($current_lang == "en") {
+                            $month[] = "July";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Juillet";
+                        } else {
+                            $month[] = "يوليوز";
+                        }
+                        break;
+                    
+                    case "August":
+                        if ($current_lang == "en") {
+                            $month[] = "August";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Août";
+                        } else {
+                            $month[] = "غشت";
+                        }
+                        break;
+                    
+                    case "September":
+                        if ($current_lang == "en") {
+                            $month[] = "September";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Septembre";
+                        } else {
+                            $month[] = "سبتمبر";
+                        }
+                        break;
+                    
+                    case "October":
+                        if ($current_lang == "en") {
+                            $month[] = "October";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Octobre";
+                        } else {
+                            $month[] = "أكتوبر";
+                        }
+                        break;
+                    
+                    case "November":
+                        if ($current_lang == "en") {
+                            $month[] = "November";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Novembre";
+                        } else {
+                            $month[] = "نوفمبر";
+                        }
+                        break;
+                    
+                    case "December":
+                        if ($current_lang == "en") {
+                            $month[] = "December";
+                        } elseif ($current_lang == "fr") {
+                            $month[] = "Décembre";
+                        } else {
+                            $month[] = "ديسمبر";
+                        }
+                        break;
+                    
+                }
+                //$month[] = date("F", strtotime($start_date));
+                $start = strtotime("+1 month", $start);
+            }
 
 
             // $product_sale_data = Product_Sale::select(DB::raw('product_id, product_batch_id, sum(qty) as sold_qty, sum(total) as sold_amount'))->whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->groupBy('product_id', 'product_batch_id')->get();
@@ -440,7 +592,7 @@ class HomeController extends Controller
         //         $payroll_amount = Payroll::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->sum('amount');
         //     }
         //     $sent_amount = $sent_amount + $return_amount + $expense_amount + $payroll_amount;
-            
+
         //     $payment_recieved[] = number_format((float)($recieved_amount + $purchase_return_amount), 2, '.', ' ');
         //     $payment_sent[] = number_format((float)$sent_amount, 2, '.', ' ');
         //     $month[] = date("F", strtotime($start_date));
@@ -468,61 +620,65 @@ class HomeController extends Controller
         //return $month;
         // return view('index', compact('demande_withdraws', 'total_withdraws', 'reste', 'total_sales', 'livre', 'en_cours', 'returned', 'profit_row', 'revenue', 'purchase', 'expense', 'return', 'purchase_return', 'profit', 'payment_recieved', 'payment_sent', 'month', 'yearly_sale_amount', 'yearly_purchase_amount', 'recent_sale', 'recent_purchase', 'recent_quotation', 'recent_payment', 'best_selling_qty', 'yearly_best_selling_qty', 'yearly_best_selling_price'));
 
-        return view('index', compact('is_referral', 'demande_withdraws', 'total_withdraws', 'reste', 'total_sales', 'livre', 'en_cours', 'returned', 'refused', 'new_sale', 'profit', 'profit_row', 'total_v_referral', 'total_w_referral', 'total_r_referral', 'best_selling_qty', 'best_saler'));
+        return view('index', compact('is_referral', 'demande_withdraws', 'total_withdraws', 'reste', 'total_sales', 'livre', 'en_cours', 'returned', 'refused', 'new_sale', 'profit', 'profit_row', 'total_v_referral', 'total_w_referral', 'total_r_referral', 'best_selling_qty', 'best_saler', 'sales_by_month', 'month', 'current_lang'));
         // return view('index', compact('total_sales', 'livre', 'en_cours', 'returned', 'profit_row', 'total_v_referral', 'total_w_referral', 'total_r_referral'));
     }
 
     public function gains()
     {
         $start_date = '2023-11-01';
-        $end_date = date("Y").'-'.date("m").'-'.date('t', mktime(0, 0, 0, date("m"), 1, date("Y")));
+        $end_date = date("Y") . '-' . date("m") . '-' . date('t', mktime(0, 0, 0, date("m"), 1, date("Y")));
         $yearly_sale_amount = [];
 
         $general_setting = DB::table('general_settings')->latest()->first();
         $is_referral = Referral::where('referral_id', Auth::id())->count();
-        if(Auth::user()->role_id > 2 && $general_setting->staff_access == 'own') { // Role Vendeur
+        if (Auth::user()->role_id > 2 && $general_setting->staff_access == 'own') { // Role Vendeur
             $total_sales = Sale::where('user_id', Auth::id())->count();
             $livre          = Sale::where([
-                                        ['user_id', Auth::id()], 
-                                        ['delivery_status', 4]])
-                                    ->count();
+                ['user_id', Auth::id()],
+                ['delivery_status', 4]
+            ])
+                ->count();
             $en_cours       = Sale::where([
-                                        ['user_id', Auth::id()], 
-                                        ['delivery_status', '!=', 4]])
-                                    ->whereBetween('delivery_status', [1, 9])
-                                    ->count();
+                ['user_id', Auth::id()],
+                ['delivery_status', '!=', 4]
+            ])
+                ->whereBetween('delivery_status', [1, 9])
+                ->count();
             $returned       = Sale::where('user_id', Auth::id())
-                                    ->whereBetween('delivery_status', [10, 12])
-                                    ->count();
+                ->whereBetween('delivery_status', [10, 12])
+                ->count();
             $refused        = Sale::where([
-                                        ['user_id', Auth::id()],
-                                        ['delivery_status', 11]])
-                                    ->count();
+                ['user_id', Auth::id()],
+                ['delivery_status', 11]
+            ])
+                ->count();
             $new_sale       = Sale::where([
-                                        ['user_id', Auth::id()],
-                                        ['is_valide', 1]])
-                                    ->whereNull('delivery_status')
-                                    ->count();
-                            
+                ['user_id', Auth::id()],
+                ['is_valide', 1]
+            ])
+                ->whereNull('delivery_status')
+                ->count();
+
             $total_vendeur = 0;
             $total_v_referral = 0;
             $total_w_referral = 0;
             $total_r_referral = 0;
             $total_v_referral = Referral::where('referral_id', Auth::id())
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->sum('montant');
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->sum('montant');
 
             $total_w_referral = WithdrawReferral::where([
-                                        ['referral_id', Auth::id()],
-                                        ['status', 1]
-                                ])
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->sum('withdraw_amount');
+                ['referral_id', Auth::id()],
+                ['status', 1]
+            ])
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->sum('withdraw_amount');
 
             $total_r_referral = $total_v_referral - $total_w_referral;
-            
+
             $profit = 0;
             $reste = 0;
             $total_withdraws = 0;
@@ -541,39 +697,38 @@ class HomeController extends Controller
             $best_saler = 0;
 
             $lims_sale_data = Sale::where([
-                                            ['user_id', Auth::id()],
-                                            ['delivery_status', 4]
-                                        ])
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->get();
+                ['user_id', Auth::id()],
+                ['delivery_status', 4]
+            ])
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->get();
 
             foreach ($lims_sale_data as $sale) {
                 $lims_product_sale_data = Product_Sale::where('sale_id', $sale->id)->get();
                 foreach ($lims_product_sale_data as $product_sale) {
-                    $original_price += $product_sale->original_price * $product_sale->qty;                    
+                    $original_price += $product_sale->original_price * $product_sale->qty;
                 }
                 $net_price += $sale->grand_total;
                 $livraison += $sale->livraison;
                 $total_discount += $sale->total_discount;
-                
-            }            
+            }
 
             $profit = $net_price + $total_discount - $original_price - $livraison;
 
             $lims_sale_data = Sale::where([
-                                            ['user_id', Auth::id()],
-                                            ['delivery_status', 4]
-                                        ])
-                                ->whereNotNull('withdrawal_id')
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->get();
+                ['user_id', Auth::id()],
+                ['delivery_status', 4]
+            ])
+                ->whereNotNull('withdrawal_id')
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->get();
 
             foreach ($lims_sale_data as $sale) {
                 $lims_product_sale_data = Product_Sale::where('sale_id', $sale->id)->get();
                 foreach ($lims_product_sale_data as $product_sale) {
-                    $original_price_withdraws += $product_sale->original_price * $product_sale->qty;                    
+                    $original_price_withdraws += $product_sale->original_price * $product_sale->qty;
                 }
                 $net_price_withdraws += $sale->grand_total;
                 $livraison_withdraws += $sale->livraison;
@@ -627,21 +782,21 @@ class HomeController extends Controller
             // $recent_purchase = Purchase::orderBy('id', 'desc')->take(5)->get();
             // $recent_quotation = Quotation::orderBy('id', 'desc')->take(5)->get();
             // $recent_payment = Payment::orderBy('id', 'desc')->take(5)->get();
-            
+
         } else { // Role Admin
             $total_sales    = Sale::all()->count();
             $livre          = Sale::where('delivery_status', 4)
-                                    ->count();
+                ->count();
             $en_cours       = Sale::where('delivery_status', '!=', 4)
-                                    ->whereBetween('delivery_status', [1, 9])
-                                    ->count();
+                ->whereBetween('delivery_status', [1, 9])
+                ->count();
             $returned       = Sale::whereBetween('delivery_status', [10, 12])
-                                    ->count();
+                ->count();
             $refused        = Sale::where('delivery_status', 11)
-                                    ->count();
+                ->count();
             $new_sale       = Sale::where('is_valide', 1)
-                                    ->whereNull('delivery_status')
-                                    ->count();
+                ->whereNull('delivery_status')
+                ->count();
 
             /** Début gains table **/
 
@@ -675,18 +830,18 @@ class HomeController extends Controller
             $total_v_referral = 0;
             $total_w_referral = 0;
             $total_r_referral = 0;
-            $total_v_referral = Referral::whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->sum('montant');
+            $total_v_referral = Referral::whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->sum('montant');
 
             $total_w_referral = WithdrawReferral::where('status', 1)
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->sum('withdraw_amount');
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->sum('withdraw_amount');
 
             $total_r_referral = $total_v_referral - $total_w_referral;
 
-            
+
 
 
             /***********************************/
@@ -719,9 +874,9 @@ class HomeController extends Controller
             /** Début du calcul du profit total des vendeurs **/
 
             $lims_sale_data = Sale::where('delivery_status', 4)
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->get();
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->get();
 
             foreach ($lims_sale_data as $sale) {
                 $lims_gain_data = Gain::where('sale_id', $sale->id)->first();
@@ -739,10 +894,10 @@ class HomeController extends Controller
             /** Début du calcul du profit total des vendeurs (facturés) **/
 
             $lims_sale_data = Sale::where('delivery_status', 4)
-                                ->whereNotNull('withdrawal_id')
-                                ->whereDate('created_at', '>=' , $start_date)
-                                ->whereDate('created_at', '<=' , $end_date)
-                                ->get();
+                ->whereNotNull('withdrawal_id')
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->get();
 
             foreach ($lims_sale_data as $sale) {
                 $lims_gain_data = Gain::where('sale_id', $sale->id)->first();
@@ -762,23 +917,21 @@ class HomeController extends Controller
             /***********************************/
 
             $best_selling_qty = Product_Sale::select(DB::raw('product_id, sum(qty) as sold_qty'))
-                                            ->whereDate('created_at', '>=' , $start_date)
-                                            ->whereDate('created_at', '<=' , $end_date)
-                                            ->groupBy('product_id')
-                                            ->orderBy('sold_qty', 'desc')
-                                            ->take(10)
-                                            ->get();
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->groupBy('product_id')
+                ->orderBy('sold_qty', 'desc')
+                ->take(10)
+                ->get();
 
             $best_saler       = Gain::select(DB::raw('
                                             user_id, (sum(grand_total) + sum(total_discount) - sum(total_original_price) - sum(total_livraison)) as t_gain '))
-                                            ->whereDate('created_at', '>=' , $start_date)
-                                            ->whereDate('created_at', '<=' , $end_date)
-                                            ->groupBy('user_id')
-                                            ->orderBy('t_gain', 'desc')
-                                            ->take(10)
-                                            ->get();
-
-
+                ->whereDate('created_at', '>=', $start_date)
+                ->whereDate('created_at', '<=', $end_date)
+                ->groupBy('user_id')
+                ->orderBy('t_gain', 'desc')
+                ->take(10)
+                ->get();
 
 
             // $product_sale_data = Product_Sale::select(DB::raw('product_id, product_batch_id, sum(qty) as sold_qty, sum(total) as sold_amount'))->whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->groupBy('product_id', 'product_batch_id')->get();
@@ -871,7 +1024,7 @@ class HomeController extends Controller
         //         $payroll_amount = Payroll::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->sum('amount');
         //     }
         //     $sent_amount = $sent_amount + $return_amount + $expense_amount + $payroll_amount;
-            
+
         //     $payment_recieved[] = number_format((float)($recieved_amount + $purchase_return_amount), 2, '.', ' ');
         //     $payment_sent[] = number_format((float)$sent_amount, 2, '.', ' ');
         //     $month[] = date("F", strtotime($start_date));
@@ -906,12 +1059,24 @@ class HomeController extends Controller
     public function dashboardFilter($start_date, $end_date)
     {
         $general_setting = DB::table('general_settings')->latest()->first();
-        if(Auth::user()->role_id > 2 && $general_setting->staff_access == 'own') {
-            $revenue = Sale::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->where('user_id', Auth::id())->sum('grand_total');
-            $return = Returns::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->where('user_id', Auth::id())->sum('grand_total');
-            $purchase_return = ReturnPurchase::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->where('user_id', Auth::id())->sum('grand_total');
+        if (Auth::user()->role_id > 2 && $general_setting->staff_access == 'own') {
+            $revenue = Sale::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('grand_total');
+            $return = Returns::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('grand_total');
+            $purchase_return = ReturnPurchase::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('grand_total');
             $revenue -= $return;
-            $purchase = Purchase::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->where('user_id', Auth::id())->sum('grand_total');
+            $purchase = Purchase::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('grand_total');
+            $profit = $revenue + $purchase_return - $purchase;
+
+            $data[0] = $revenue;
+            $data[1] = $return;
+            $data[2] = $profit;
+            $data[3] = $purchase_return;
+        } else {
+            $revenue = Sale::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->sum('grand_total');
+            $return = Returns::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->sum('grand_total');
+            $purchase_return = ReturnPurchase::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->sum('grand_total');
+            $revenue -= $return;
+            $purchase = Purchase::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->sum('grand_total');
             $profit = $revenue + $purchase_return - $purchase;
 
             $data[0] = $revenue;
@@ -919,20 +1084,7 @@ class HomeController extends Controller
             $data[2] = $profit;
             $data[3] = $purchase_return;
         }
-        else{
-            $revenue = Sale::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->sum('grand_total');
-            $return = Returns::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->sum('grand_total');
-            $purchase_return = ReturnPurchase::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->sum('grand_total');
-            $revenue -= $return;
-            $purchase = Purchase::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->sum('grand_total');
-            $profit = $revenue + $purchase_return - $purchase;
 
-            $data[0] = $revenue;
-            $data[1] = $return;
-            $data[2] = $profit;
-            $data[3] = $purchase_return;
-        }
-        
         return $data;
     }
 
@@ -940,12 +1092,11 @@ class HomeController extends Controller
     {
         $start = 1;
         $number_of_day = date('t', mktime(0, 0, 0, $month, 1, $year));
-        while($start <= $number_of_day)
-        {
-            if($start < 10)
-                $date = $year.'-'.$month.'-0'.$start;
+        while ($start <= $number_of_day) {
+            if ($start < 10)
+                $date = $year . '-' . $month . '-0' . $start;
             else
-                $date = $year.'-'.$month.'-'.$start;
+                $date = $year . '-' . $month . '-' . $start;
             $sale_generated[$start] = Sale::whereDate('created_at', $date)->where('user_id', Auth::id())->count();
             $sale_grand_total[$start] = Sale::whereDate('created_at', $date)->where('user_id', Auth::id())->sum('grand_total');
             $purchase_generated[$start] = Purchase::whereDate('created_at', $date)->where('user_id', Auth::id())->count();
@@ -954,12 +1105,12 @@ class HomeController extends Controller
             $quotation_grand_total[$start] = Quotation::whereDate('created_at', $date)->where('user_id', Auth::id())->sum('grand_total');
             $start++;
         }
-        $start_day = date('w', strtotime($year.'-'.$month.'-01')) + 1;
-        $prev_year = date('Y', strtotime('-1 month', strtotime($year.'-'.$month.'-01')));
-        $prev_month = date('m', strtotime('-1 month', strtotime($year.'-'.$month.'-01')));
-        $next_year = date('Y', strtotime('+1 month', strtotime($year.'-'.$month.'-01')));
-        $next_month = date('m', strtotime('+1 month', strtotime($year.'-'.$month.'-01')));
-        return view('user.my_transaction', compact('start_day', 'year', 'month', 'number_of_day', 'prev_year', 'prev_month', 'next_year', 'next_month', 'sale_generated', 'sale_grand_total','purchase_generated', 'purchase_grand_total','quotation_generated', 'quotation_grand_total'));
+        $start_day = date('w', strtotime($year . '-' . $month . '-01')) + 1;
+        $prev_year = date('Y', strtotime('-1 month', strtotime($year . '-' . $month . '-01')));
+        $prev_month = date('m', strtotime('-1 month', strtotime($year . '-' . $month . '-01')));
+        $next_year = date('Y', strtotime('+1 month', strtotime($year . '-' . $month . '-01')));
+        $next_month = date('m', strtotime('+1 month', strtotime($year . '-' . $month . '-01')));
+        return view('user.my_transaction', compact('start_day', 'year', 'month', 'number_of_day', 'prev_year', 'prev_month', 'next_year', 'next_month', 'sale_generated', 'sale_grand_total', 'purchase_generated', 'purchase_grand_total', 'quotation_generated', 'quotation_grand_total'));
     }
 }
 
